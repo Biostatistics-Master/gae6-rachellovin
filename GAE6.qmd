@@ -1,6 +1,6 @@
 ---
 title: "GAE6: Pea Aphids: multiple comparisons"
-author: "Your Name Here"
+author: "Rachel Lovin"
 format: 
   html:
     embed-resources: true
@@ -81,9 +81,17 @@ To measure color, the researchers used Adobe Photoshop CS (version 8.01, Adobe I
 
 I tested for differences among the un-injected control (Control), the injected but uninfected aphids (Uninfected), and the injected and infected aphids (Infected) by analysis of variance (ANOVA) using the lm() function from R [@base] and the Anova() function from the car package [@car]. All data manipulation and graphical results were computed using packages provided by the tidyverse metapackage [@tidyverse] and all tabular results were produced using the kbl() function from the kableExtra package [@kableExtra].
 
+I next constructed independent orthogonal contrasts for our groups. Because the experiment had three degrees of freedom, I could construct two contrasts. I used the emmeans [@emmeans] package to run our planned hypothesis tests.
+
+Finally, I ran a Tukey test in order to protect the experimental error rate. This test allowed me to construct simultaneous confidence intervals for my comparisons.
+
 ## Results:
 
 Infected pea aphids exhibited distinctly larger hue angles and hence greener colors (@tbl-ANOVA, @fig-Aphids). This result supports the researchers' hypothesis that infection may lead to color change.
+
+Our hypothesis tests showed that there was a statistically significant difference in color change between the uninfected and infected aphids (P \< 0.001). However, there was no significant difference in coloration between the control treatment and the injected but uninfected treatment (P = .324) (@tbl-Planned).
+
+Once the Tukey correction was applied, the p value for differences between the control and infected groups was significant, as was the p value for differences between uninfected and infected groups (P \< .05). However, the difference between the control and injected but uninfected groups was not significant (P = .5801) (@tbl-Tukey).
 
 ```{r}
 #| label: tbl-ANOVA
@@ -153,6 +161,63 @@ ggplot(aphids)+
   theme(
     legend.position = "none"
   )
+
+```
+
+```{r}
+#| label: tbl-Planned
+#| tbl-cap: "Planned hypothesis tests"
+
+aphidMeans <- emmeans(aphidMod,"Treatment")
+
+aphidCont <- tidy(contrast(
+  aphidMeans,
+  method = list(
+    
+    'uninfected vs infected' = c( -1, -1, 2),
+    'Control vs Sham' =        c( -1, 1, 0)
+  ),
+  adjust = "none"
+))[,-c(1,3)]
+
+aphidCont$p.value <- format.pval(
+  aphidCont$p.value,
+  digits = 3,
+  eps = .001,
+  na.form = ''
+)
+
+kbl(
+  aphidCont,
+  col.names = c(
+    "Contrast",
+    "Estimate",
+    "SE",
+    "df",
+    "t",
+    "P"
+  ),
+  digits = c(0,3,3,0,3,3),
+  table.attr = 'data-quarto-disable-procession="true"'
+) |>
+  kable_classic()
+  
+  
+
+```
+
+```{r}
+#| label: tbl-Tukey
+#| tbl-cap: "All pair-wise comparisons of means with the Tukey correction to protect the experimentwise error rate at .05."
+
+
+kbl(
+  pairs(aphidMeans),
+  digits = 4,
+  table.attr = 'data-quarto-disable-processing="true"'
+) |>
+  kable_classic(full = FALSE)
+
 
 ```
 
